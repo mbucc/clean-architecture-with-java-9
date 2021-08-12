@@ -1,0 +1,310 @@
+August 11, 2021
+Log of run-time errors encountered when trying to run jar.
+
+#1
+----------------------------------------
+mark@Marks-MacBook-Pro-3 clean-architecture-with-java-9 % ./start.sh 
+mark@Marks-MacBook-Pro-3 clean-architecture-with-java-9 % starting /myapp on port 8000
+Exception in thread "main" java.util.ServiceConfigurationError: com.sun.net.httpserver.HttpHandler: Provider com.example.siteinfo.ui.SiteInfoHttpHandler could not be instantiated
+	at java.base/java.util.ServiceLoader.fail(ServiceLoader.java:584)
+	at java.base/java.util.ServiceLoader$ProviderImpl.newInstance(ServiceLoader.java:806)
+	at java.base/java.util.ServiceLoader$ProviderImpl.get(ServiceLoader.java:724)
+	at java.base/java.util.ServiceLoader$3.next(ServiceLoader.java:1396)
+	at java.base/java.util.ServiceLoader.findFirst(ServiceLoader.java:1811)
+	at com.example.main@1/com.example.main.Server.main(Server.java:22)
+Caused by: java.util.ServiceConfigurationError: com.example.siteinfo.core.usecases.GetSiteInfo: module com.example.siteinfo.ui does not declare `uses`
+	at java.base/java.util.ServiceLoader.fail(ServiceLoader.java:591)
+	at java.base/java.util.ServiceLoader.checkCaller(ServiceLoader.java:577)
+	at java.base/java.util.ServiceLoader.<init>(ServiceLoader.java:506)
+	at java.base/java.util.ServiceLoader.load(ServiceLoader.java:1693)
+	at com.example.siteinfo.ui@1/com.example.siteinfo.ui.SiteInfoHttpHandler.<init>(SiteInfoHttpHandler.java:32)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:500)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:481)
+	at java.base/java.util.ServiceLoader$ProviderImpl.newInstance(ServiceLoader.java:782)
+	... 4 more
+
+
+Resolution:
+
+old src/com.example.siteinfo.ui/module-info.java:
+module com.example.siteinfo.ui {
+	requires jdk.httpserver;
+	requires com.samskivert.jmustache;
+	requires com.example.siteinfo.core;
+	provides com.sun.net.httpserver.HttpHandler
+		with com.example.siteinfo.ui.SiteInfoHttpHandler;
+}
+
+new:
+module com.example.siteinfo.ui {
+	requires jdk.httpserver;
+	requires com.samskivert.jmustache;
+	requires com.example.siteinfo.core;
+	uses com.example.siteinfo.core.usecases.GetSiteInfo;
+	provides com.sun.net.httpserver.HttpHandler
+		with com.example.siteinfo.ui.SiteInfoHttpHandler;
+}
+
+
+
+
+#2
+----------------------------------------
+starting /myapp on port 8000
+Exception in thread "main" java.util.ServiceConfigurationError: com.sun.net.httpserver.HttpHandler: Provider com.example.siteinfo.ui.SiteInfoHttpHandler could not be instantiated
+	at java.base/java.util.ServiceLoader.fail(ServiceLoader.java:584)
+	at java.base/java.util.ServiceLoader$ProviderImpl.newInstance(ServiceLoader.java:806)
+	at java.base/java.util.ServiceLoader$ProviderImpl.get(ServiceLoader.java:724)
+	at java.base/java.util.ServiceLoader$3.next(ServiceLoader.java:1396)
+	at java.base/java.util.ServiceLoader.findFirst(ServiceLoader.java:1811)
+	at com.example.main@1/com.example.main.Server.main(Server.java:22)
+Caused by: java.lang.IllegalStateException: no GetSiteInfo implementation found
+	at com.example.siteinfo.ui@1/com.example.siteinfo.ui.SiteInfoHttpHandler.lambda$new$0(SiteInfoHttpHandler.java:35)
+	at java.base/java.util.Optional.orElseThrow(Optional.java:401)
+	at com.example.siteinfo.ui@1/com.example.siteinfo.ui.SiteInfoHttpHandler.<init>(SiteInfoHttpHandler.java:35)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:500)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:481)
+	at java.base/java.util.ServiceLoader$ProviderImpl.newInstance(ServiceLoader.java:782)
+	... 4 more
+
+
+
+RESOLUTION
+
+add provides to src/com.example.siteinfo.core/module-info.java.
+old:
+14	module com.example.siteinfo.core {
+15		exports com.example.siteinfo.core.entities;
+16		exports com.example.siteinfo.core.usecases;
+17		exports com.example.siteinfo.core.ports;
+18	}
+
+new:
+module com.example.siteinfo.core {
+	exports com.example.siteinfo.core.entities;
+	exports com.example.siteinfo.core.usecases;
+	exports com.example.siteinfo.core.ports;
+	provides com.example.siteinfo.core.usecases.GetSiteInfo
+		with com.example.siteinfo.core.services.GetSiteInfoService;
+}
+
+
+
+
+
+#3
+----------------------------------------
+
+javac -d mods --module-path lib --module-source-path ./src $(find src -name '*.java')
+src/com.example.siteinfo.core/module-info.java:19: error: the service implementation does not have a default constructor: GetSiteInfoService
+		with com.example.siteinfo.core.services.GetSiteInfoService;
+		                                       ^
+1 error
+
+
+
+
+RESOLUTION:
+
+Use same approach as in UI.  Create package-private constructor to
+inject mocks for testing, and use service loader in require no args
+construtor.
+
+New constructor code in src/com.example.siteinfo.core/com/example/siteinfo/core/services/GetSiteInfoService.java:
+
+	public GetSiteInfoService() {
+		this.db = ServiceLoader
+			.load(FindSiteInfo.class)
+			.findFirst()
+			.orElseThrow(() -> new IllegalStateException("no FindSiteInfo implementation found."));
+	}
+
+	// Not used, left as an example of how tests could inject a mock.
+	GetSiteInfoService(FindSiteInfo db) {
+		this.db = db;
+	}
+
+
+
+
+
+
+#4
+----------------------------------------
+
+
+mark@Marks-MacBook-Pro-3 clean-architecture-with-java-9 % starting /myapp on port 8000
+Exception in thread "main" java.util.ServiceConfigurationError: com.sun.net.httpserver.HttpHandler: Provider com.example.siteinfo.ui.SiteInfoHttpHandler could not be instantiated
+	at java.base/java.util.ServiceLoader.fail(ServiceLoader.java:584)
+	at java.base/java.util.ServiceLoader$ProviderImpl.newInstance(ServiceLoader.java:806)
+	at java.base/java.util.ServiceLoader$ProviderImpl.get(ServiceLoader.java:724)
+	at java.base/java.util.ServiceLoader$3.next(ServiceLoader.java:1396)
+	at java.base/java.util.ServiceLoader.findFirst(ServiceLoader.java:1811)
+	at com.example.main@1/com.example.main.Server.main(Server.java:22)
+Caused by: java.util.ServiceConfigurationError: com.example.siteinfo.core.usecases.GetSiteInfo: Provider com.example.siteinfo.core.services.GetSiteInfoService could not be instantiated
+	at java.base/java.util.ServiceLoader.fail(ServiceLoader.java:584)
+	at java.base/java.util.ServiceLoader$ProviderImpl.newInstance(ServiceLoader.java:806)
+	at java.base/java.util.ServiceLoader$ProviderImpl.get(ServiceLoader.java:724)
+	at java.base/java.util.ServiceLoader$3.next(ServiceLoader.java:1396)
+	at java.base/java.util.ServiceLoader.findFirst(ServiceLoader.java:1811)
+	at com.example.siteinfo.ui@1/com.example.siteinfo.ui.SiteInfoHttpHandler.<init>(SiteInfoHttpHandler.java:34)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:500)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:481)
+	at java.base/java.util.ServiceLoader$ProviderImpl.newInstance(ServiceLoader.java:782)
+	... 4 more
+Caused by: java.util.ServiceConfigurationError: com.example.siteinfo.core.ports.FindSiteInfo: module com.example.siteinfo.core does not declare `uses`
+	at java.base/java.util.ServiceLoader.fail(ServiceLoader.java:591)
+	at java.base/java.util.ServiceLoader.checkCaller(ServiceLoader.java:577)
+	at java.base/java.util.ServiceLoader.<init>(ServiceLoader.java:506)
+	at java.base/java.util.ServiceLoader.load(ServiceLoader.java:1693)
+	at com.example.siteinfo.core@1/com.example.siteinfo.core.services.GetSiteInfoService.<init>(GetSiteInfoService.java:24)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:500)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:481)
+	at java.base/java.util.ServiceLoader$ProviderImpl.newInstance(ServiceLoader.java:782)
+	... 14 more
+RESOLUTION:
+
+This one is interesting.
+Even if the interface is inside the same module,
+it must be declared in the module-info.
+
+
+added one line to src/com.example.siteinfo.core/module-info.java:
+
+	uses com.example.siteinfo.core.ports.FindSiteInfo;
+
+
+
+And now it starts up.
+
+#5
+----------------------------------------
+
+No response from server.
+
+After some printf's, I find that a mustache exception is swallowed in handler implementation.
+
+With this code:
+	@Override
+	public void handle(HttpExchange x) throws IOException {
+
+		System.out.println("start handle()");
+		System.out.println("this.service = " + this.service);
+
+		Optional<SiteInfo> y = this.service.getSiteInfo();
+
+		System.out.println("y = " + y);
+		System.out.println("y.get() = " + y.orElse(null));
+		System.out.println("okTemplate = " + this.okTemplate);
+		try {
+			System.out.println("okTemplate.execute(y.get()) = " + okTemplate.execute(y.get()));
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw e;
+		}
+
+		String response = y.map(okTemplate::execute).orElse(notOkHtml);
+
+		System.out.println("response = " + response);
+
+		Headers ys = x.getResponseHeaders();
+		ys.set("Content-Type", "text/html");
+
+		if (y.isPresent()) {
+			x.sendResponseHeaders(200, response.length());
+		} else {
+			x.sendResponseHeaders(404, response.length());
+		}
+
+		OutputStream os = x.getResponseBody();
+		os.write(response.getBytes());
+		os.close();
+	}
+
+I get this printed to stderr:
+mark@Marks-MacBook-Pro-3 clean-architecture-with-java-9 % curl localhost:8000/myapp
+start handle()
+this.service = com.example.siteinfo.core.services.GetSiteInfoService@743cbcef
+y = Optional[com.example.siteinfo.core.entities.SiteInfo@4abecb84]
+y.get() = com.example.siteinfo.core.entities.SiteInfo@4abecb84
+okTemplate = com.samskivert.mustache.Template@18d722ed
+com.samskivert.mustache.MustacheException$Context: No method or field with name 'name' on line 1
+	at com.samskivert.jmustache@1.15/com.samskivert.mustache.Template.checkForMissing(Template.java:344)
+	at com.samskivert.jmustache@1.15/com.samskivert.mustache.Template.getValue(Template.java:247)
+	at com.samskivert.jmustache@1.15/com.samskivert.mustache.Template.getValueOrDefault(Template.java:292)
+	at com.samskivert.jmustache@1.15/com.samskivert.mustache.Mustache$VariableSegment.execute(Mustache.java:872)
+	at com.samskivert.jmustache@1.15/com.samskivert.mustache.Template.executeSegs(Template.java:170)
+	at com.samskivert.jmustache@1.15/com.samskivert.mustache.Template.execute(Template.java:137)
+	at com.samskivert.jmustache@1.15/com.samskivert.mustache.Template.execute(Template.java:128)
+	at com.example.siteinfo.ui@1/com.example.siteinfo.ui.SiteInfoHttpHandler.handle(SiteInfoHttpHandler.java:57)
+	at jdk.httpserver/com.sun.net.httpserver.Filter$Chain.doFilter(Filter.java:77)
+	at jdk.httpserver/sun.net.httpserver.AuthFilter.doFilter(AuthFilter.java:82)
+	at jdk.httpserver/com.sun.net.httpserver.Filter$Chain.doFilter(Filter.java:80)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl$Exchange$LinkHandler.handle(ServerImpl.java:692)
+	at jdk.httpserver/com.sun.net.httpserver.Filter$Chain.doFilter(Filter.java:77)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl$Exchange.run(ServerImpl.java:664)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl$DefaultExecutor.execute(ServerImpl.java:159)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl$Dispatcher.handle(ServerImpl.java:442)
+	at jdk.httpserver/sun.net.httpserver.ServerImpl$Dispatcher.run(ServerImpl.java:408)
+	at java.base/java.lang.Thread.run(Thread.java:832)
+curl: (52) Empty reply from server
+
+
+
+mark@Marks-MacBook-Pro-3 clean-architecture-with-java-9 % ./start.sh 
+mark@Marks-MacBook-Pro-3 clean-architecture-with-java-9 % starting /myapp on port 8000
+
+mark@Marks-MacBook-Pro-3 clean-architecture-with-java-9 % curl -vvv localhost:8000/myapp
+*   Trying 127.0.0.1...
+* TCP_NODELAY set
+* Connected to localhost (127.0.0.1) port 8000 (#0)
+> GET /myapp HTTP/1.1
+> Host: localhost:8000
+> User-Agent: curl/7.64.1
+> Accept: */*
+> 
+* Empty reply from server
+* Connection #0 to host localhost left intact
+curl: (52) Empty reply from server
+* Closing connection 0
+
+#6
+----------------------------------
+Build tarball, copy to jdevgarden, and run start.sh
+
+
+jdevgarden:~/clean$ ./start.sh 
+jdevgarden:~/clean$ Error occurred during initialization of boot layer
+java.lang.module.FindException: Error reading module: jars/com.example.main@1.jar
+Caused by: java.lang.module.InvalidModuleDescriptorException: Unsupported major.minor version 58.0
+^C
+jdevgarden:~/clean$ java -version
+openjdk version "11.0.11" 2021-04-20
+OpenJDK Runtime Environment (build 11.0.11+9-alpine-r0)
+OpenJDK 64-Bit Server VM (build 11.0.11+9-alpine-r0, mixed mode)
+jdevgarden:~/clean$ cat start.sh
+#! /bin/sh -e
+# August 11, 2021
+
+java --module-path jars:lib --module com.example.main &
+jdevgarden:~/clean$
+
+
+RESOLUTION
+I had compiled with Java 14 and was trying to run with Java 11.
+
+export JAVA_HOME=`/usr/libexec/java_home -v 11` 
+in ~/.zshrc
+

@@ -1,0 +1,158 @@
+August 12, 2021
+Record RAM usage and ab load test output
+
+
+Summary
+
+	Uses 25 MB MB of RAM.
+	Uses 33 MB MB of RAM at highest load from ab.
+
+	At 50,000 total POSTs with a concurrency of 50, I got:
+
+		1,696	requests/second
+		   29 	mean time / request (ms)
+
+	At concurrency of 75 and 100, I got apr_socket_recv: Connection reset by peer (54).
+	A 29 ms response time at 1,500 rps is plenty of juice for what I need, so I didn't
+	pursue this any further.
+
+
+Environment
+
+	jdevserver: VirtualBox 250MB RAM, Alpine 3.14.1 64-bit
+	localhost: Macbook Pro
+	jdk, localhost:
+		mark@Marks-MacBook-Pro-3 docs % java -version
+		openjdk version "11.0.2" 2019-01-15
+		OpenJDK Runtime Environment 18.9 (build 11.0.2+9)
+		OpenJDK 64-Bit Server VM 18.9 (build 11.0.2+9, mixed mode)
+		mark@Marks-MacBook-Pro-3 docs % 
+	jkd, server:
+		jdevgarden:~/clean$ java -version
+		openjdk version "11.0.11" 2021-04-20
+		OpenJDK Runtime Environment (build 11.0.11+9-alpine-r0)
+		OpenJDK 64-Bit Server VM (build 11.0.11+9-alpine-r0, mixed mode)
+		jdevgarden:~/clean$ 
+
+
+
+RAM Details
+
+	Startup, request one page;
+
+jdevgarden:~/clean$ free -m
+              total        used        free      shared  buff/cache   available
+Mem:            227          62          96           0          68         159
+Swap:          3337           0        3337
+jdevgarden:~/clean$ 
+
+	At highest load:
+
+
+jdevgarden:~/clean$ free -m
+              total        used        free      shared  buff/cache   available
+Mem:            227          70          87           0          69         153
+Swap:          3337           0        3337
+jdevgarden:~/clean$
+
+
+	Shutdown.
+
+jdevgarden:~/clean$ ./stop.sh 
+killing 2374
+jdevgarden:~/clean$ 
+jdevgarden:~/clean$ 
+jdevgarden:~/clean$ 
+jdevgarden:~/clean$ 
+jdevgarden:~/clean$ free -m
+              total        used        free      shared  buff/cache   available
+Mem:            227          37         120           0          68         181
+Swap:          3337           0        3337
+jdevgarden:~/clean$ 
+
+
+	Subtract: 62 - 37 = 25 MB RAM
+
+
+
+Load test
+
+	Start.
+
+
+	Try getting server to start to time out, but could not (with ab).
+
+
+	Stopped trying at 50,000 requests and 50 concurrent clients.
+
+mark@Marks-MacBook-Pro-3 docs % ./load-test.sh 50000 50 
+ab -n 50000 -c 50 -p post-body.txt http://jdevgarden:8000/myapp
+This is ApacheBench, Version 2.3 <$Revision: 1879490 $>
+Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+Licensed to The Apache Software Foundation, http://www.apache.org/
+
+Benchmarking jdevgarden (be patient)
+Completed 5000 requests
+Completed 10000 requests
+Completed 15000 requests
+Completed 20000 requests
+Completed 25000 requests
+Completed 30000 requests
+Completed 35000 requests
+Completed 40000 requests
+Completed 45000 requests
+Completed 50000 requests
+Finished 50000 requests
+
+
+Server Software:        
+Server Hostname:        jdevgarden
+Server Port:            8000
+
+Document Path:          /myapp
+Document Length:        167 bytes
+
+Concurrency Level:      50
+Time taken for tests:   29.483 seconds
+Complete requests:      50000
+Failed requests:        0
+Total transferred:      14400000 bytes
+Total body sent:        190400000
+HTML transferred:       8350000 bytes
+Requests per second:    1695.92 [#/sec] (mean)
+Time per request:       29.483 [ms] (mean)
+Time per request:       0.590 [ms] (mean, across all concurrent requests)
+Transfer rate:          476.98 [Kbytes/sec] received
+                        6306.70 kb/s sent
+                        6783.67 kb/s total
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    1  10.9      0    2436
+Processing:     3   29  77.1     23    2476
+Waiting:        1   29  76.3     22    2476
+Total:          3   29  77.8     23    2477
+
+Percentage of the requests served within a certain time (ms)
+  50%     23
+  66%     30
+  75%     33
+  80%     35
+  90%     37
+  95%     39
+  98%     45
+  99%     54
+ 100%   2477 (longest request)
+mark@Marks-MacBook-Pro-3 docs %
+
+
+
+At high load, this was output of free -m:
+
+
+jdevgarden:~/clean$ free -m
+              total        used        free      shared  buff/cache   available
+Mem:            227          70          87           0          69         153
+Swap:          3337           0        3337
+jdevgarden:~/clean$
+
