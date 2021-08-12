@@ -10,7 +10,7 @@ The goals were to
 * build a pure Java server that will work with only 250 MB of RAM, and
 * see how much work it is to go all in on using clean architecture components.
 
-This repo is purposfully over-engineered---no YAGNI here.  I implemented every 
+This repo is purposefully over-engineered---no YAGNI here.  I implemented every 
 boundary I could see:
 
 ![](docs/dependencies.png)
