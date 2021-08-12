@@ -6,9 +6,9 @@ and a clean architecture.
 
 To run, type `make; ./start.sh`.
 
-The goal was to build a pure Java server that will
-* operate in an environment with only 250 MB of RAM, and
-* see how much work it is to wire together independent component.
+The goals were to
+* build a pure Java server that will work with only 250 MB of RAM, and
+* see how much work it is to go all in on using clean architecture components.
 
 This repo is purposfully over-engineered---no YAGNI here.  I implemented every 
 boundary I could see:
@@ -31,7 +31,7 @@ module without touching code in any other modules.  That's a big "if",
 but it's not a lot of extra work 
 and the potential win is big.
 
-Especially if you consider the set of business entities in a real-world
+The win is especially big if you consider the set of business entities in a real-world
 project. This dummy project 
 has the one `siteinfo` entity, 
 but in a real world project you will have many more entities, and they 
@@ -45,9 +45,9 @@ lower risk
 to  split up your one huge database schema into smaller, entity-specific 
 schemas (once you settle how to handle race conditions around 
 foreign key constraints  ;)
-). You could
+). Likewise,  you could
 have one monolith or many micro services---either approach would use the
-same core, db, and (possibly) ui modules.
+same core, db, and (hopefully) the ui modules.
 
 Since java.util.ServiceLoader
 has been around since Java 1.6, this approach will work with Java 8.  You just
