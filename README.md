@@ -63,7 +63,7 @@ The following links were useful:
 
   * The ServiceLoader that comes with Java (and which I first learned about from the 
     above blog) is amazing.
-  https://docs.oracle.com/en/java/javase/11/docs/api/javabase/java/util/ServiceLoader.html
+  https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/ServiceLoader.html
 
   * Lastly, Uncle Bob's book and blog are great: 
 https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html (2012) 
