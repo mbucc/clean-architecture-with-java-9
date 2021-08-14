@@ -5,6 +5,7 @@ jars: all
 	jar --create --file ./jars/com.example.siteinfo.ui@1.jar --module-version 1 -C mods/com.example.siteinfo.ui .
 	jar --create --file ./jars/com.example.siteinfo.db@1.jar --module-version 1 -C mods/com.example.siteinfo.db .
 	jar --create --file ./jars/com.example.siteinfo.core@1.jar --module-version 1 -C mods/com.example.siteinfo.core .
+	jar --create --file ./jars/com.example.ui@1.jar --module-version 1 -C mods/com.example.ui .
 
 .PHONY: all
 all:
