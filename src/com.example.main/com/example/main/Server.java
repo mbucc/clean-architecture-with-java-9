@@ -19,6 +19,8 @@ public class Server {
 		System.out.println(String.format(START_INFO, prefix, port));
 		HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
 
+		// TODO: Add void setContextPrefix(String) method to the HttpHandlerWithContext interface.
+		// So each handler can render HTML with correct URLs.
 		ServiceLoader.load(HttpHandlerWithContext.class)
 			.stream()
 			.map(ServiceLoader.Provider::get)
