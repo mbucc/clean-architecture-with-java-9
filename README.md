@@ -55,7 +55,7 @@ will need more RAM, as I think the full Java runtime environment
 will add around 200 MB.
 
 
-As a side note, this ServiceLoader class is awesome.  For example, this code:
+As a side note, this ServiceLoader class is pretty slick.  For example, this code:
 
 ```
 ServiceLoader.load(HttpHandlerWithContext.class)
@@ -78,7 +78,7 @@ The following links were useful:
   * The source code for the above article is here: https://github.com/verhas/module-test
 
   * The ServiceLoader that comes with Java (and which I first learned about from the 
-    above blog) is amazing.
+    above blog) JavaDocs:
   https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/ServiceLoader.html
 
   * Lastly, Uncle Bob's book and blog are great: 
