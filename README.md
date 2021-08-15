@@ -4,7 +4,7 @@ August 12, 2021
 An experiment to build a simple app using tinyjhttpd, Java 9 modules, 
 and a clean architecture.
 
-To run, type `make; ./start.sh` and then `curl -v http://localhost:8000/myapp/siteinfo`.
+To run, type `make; ./start.sh` and then `curl -v http://localhost:8000/siteinfo`.
 
 The goals were to
 * build a pure Java server that will work with only 250 MB of RAM, and
